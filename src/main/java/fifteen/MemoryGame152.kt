@@ -11,7 +11,7 @@ class MemoryGame152 {
         startNumbers.dropLast(1).forEachIndexed { index, i -> numbers[i] = index+1 }
         var lastNumberSpoken = startNumbers.last()
 
-        for(turn in startNumbers.size .. howMany-1){
+        for(turn in startNumbers.size until howMany){
             var nextNumber = findNextNumber(numbers, lastNumberSpoken, turn)
             numbers[lastNumberSpoken] = turn
             lastNumberSpoken=nextNumber
