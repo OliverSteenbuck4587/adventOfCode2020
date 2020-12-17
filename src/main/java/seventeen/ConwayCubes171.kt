@@ -1,10 +1,10 @@
 package seventeen
 
-import seventeen.ConwayCubes.State.ACTIVE
-import seventeen.ConwayCubes.State.INACTIVE
+import seventeen.ConwayCubes171.State.ACTIVE
+import seventeen.ConwayCubes171.State.INACTIVE
 
 
-class ConwayCubes {
+class ConwayCubes171 {
     fun run() {
         val input = readFileAsLinesUsingGetResourceAsStream("../17conwayCubes.txt")
         val states = input.split("\n").map { it.toCharArray().map { State.create(it) } }
@@ -87,7 +87,7 @@ class ConwayCubes {
 
 
 fun main(args: Array<String>) {
-    val baggage = ConwayCubes();
+    val baggage = ConwayCubes171();
     baggage.run()
 
 }
