@@ -1,6 +1,7 @@
 package nineteen
-
-class Messages191 {
+//replacement for rule 11
+//11: 42 31 | 42 42 31 31 | 42 42 42 31 31 31 | 42 42 42 42 31 31 31 31
+class Messages192 {
     fun run() {
         val input = readFileAsLinesUsingGetResourceAsStream("../19messages.txt")
         val messages = input.split("\n\n")[1].split("\n")
@@ -14,6 +15,8 @@ class Messages191 {
         val validSize = messages.filter { validatorRegex.matches(it) }.size
         println(validSize)
 
+
+
     }
 
 
@@ -22,6 +25,11 @@ class Messages191 {
 
     data class Rule(val id: Int, val elements: List<String>) {
         fun produce(rules: Map<Int, Rule>): String {
+
+            if(id == 8)
+                return handle8(rules)
+
+
             if (isFinal())
                 return elements.get(0)
 
@@ -40,18 +48,23 @@ class Messages191 {
             }
         }
 
+        private fun handle8(rules: Map<Int, Rule>): String {
+            //42 | 42 8
+            val fortyTwo = rules.get(42)!!.produce(rules)
+            return "($fortyTwo)+"
+        }
+
         fun isFinal(): Boolean {
             return (elements.size == 1 && elements.get(0).toIntOrNull() == null)
         }
 
     }
-
 }
 
 
 
 fun main(args: Array<String>) {
-    val baggage = Messages191();
+    val baggage = Messages192();
     baggage.run()
 
 }
