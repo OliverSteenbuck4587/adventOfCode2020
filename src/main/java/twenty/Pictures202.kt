@@ -13,6 +13,11 @@ class Pictures202 {
 
 
         //start with one
+        //todo place one corner top left
+        //write picture so it can orient itself to already place picture
+        //fill in starting from placed tile in top left
+
+
         val startPoint = picturesWithNeigbhors.find { it.picture.id == 1951 }!!
         startPoint.getRotatedSideNeighbhors().forEach { println(it) }
 
