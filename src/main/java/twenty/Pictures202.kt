@@ -13,26 +13,113 @@ class Pictures202 {
 
 
         //start with one
+        val startPoint = picturesWithNeigbhors.find { it.picture.id == 1951 }!!
+        startPoint.getRotatedSideNeighbhors().forEach { println(it) }
 
-        picturesWithNeigbhors.filter { it.picture.id == 1951}.forEach { it.neighbors.forEach { println(it) } }
 
     }
 
-    data class PictureWithNeighbors(val picture: Picture, val neighbors: Set<Picture>)
+    data class PictureWithNeighbors(val picture: Picture, val neighbors: Set<Picture>) {
+        fun getSideNeighbors(): Set<Picture> {
+            val result = mutableSetOf<Picture>()
+            val sideBorders = picture.getAllTopBottomBorders()
+            for (neigbhor in neighbors) {
+                if (sideBorders.intersect(neigbhor.borders()).size > 0) {
+                    result.add(neigbhor)
+                }
+            }
+            return result;
+        }
+
+        fun getRotatedSideNeighbhors(): MutableSet<Picture> {
+            val result = mutableSetOf<Picture>()
+            val sideNeighbors = getSideNeighbors()
+            val sideBorders = picture.getSideBorders()
+
+            for (neigbhor in neighbors) {
+                if (sideBorders.intersect(neigbhor.getSideBorders()).isNotEmpty()) {
+                    result.add(neigbhor)
+                }
+            }
+
+            for (neigbhor in neighbors.map { it.rotate() }) {
+                if (sideBorders.intersect(neigbhor.getSideBorders()).isNotEmpty()) {
+                    result.add(neigbhor)
+                }
+            }
+
+            for (neigbhor in neighbors.map { it.flip() }) {
+                if (sideBorders.intersect(neigbhor.getSideBorders()).isNotEmpty()) {
+                    result.add(neigbhor)
+                }
+            }
+
+            for (neigbhor in neighbors.map { it.rotate() }) {
+                if (sideBorders.intersect(neigbhor.getSideBorders()).isNotEmpty()) {
+                    result.add(neigbhor)
+                }
+            }
+            return result
+        }
+
+    }
 
     data class Picture(
         val id: Int,
-        val lines: List<List<Char>>) {
+        val lines: List<List<Char>>
+    ) {
 
-        fun borders(): Set<String>{
+        fun flip(): Picture {
+            return Picture(id, lines.reversed())
+        }
+
+        fun rotate(): Picture {
+            return Picture(id, lines.map { it.reversed() })
+        }
+
+        fun borders(): Set<String> {
+            return getAllTopBottomBorders().plus(getAllSideBorders())
+        }
+
+        fun getAllTopBottomBorders(): Set<String> {
             val topBorder = lines[0].joinToString(separator = "")
             val bottomBorder = lines.last().joinToString(separator = "")
-            val leftBorder = lines.map { it[0] }.joinToString(separator = "")
-            val rightBorder = lines.map { it.last() }.joinToString(separator = "")
-            val borders = setOf(topBorder, bottomBorder, leftBorder, rightBorder)
+
+
+            val borders = setOf(topBorder, bottomBorder)
             val flipedBorders = borders.map { it.reversed() }.toSet()
             return borders.plus(flipedBorders).toSet()
         }
+
+        fun getSideBorders(): Set<String> {
+            val leftBorder = lines.map { it[0] }.joinToString(separator = "")
+            val rightBorder = lines.map { it.last() }.joinToString(separator = "")
+            return setOf(leftBorder, rightBorder)
+        }
+
+        fun getAllSideBorders(): Set<String> {
+            val leftBorder = lines.map { it[0] }.joinToString(separator = "")
+            val rightBorder = lines.map { it.last() }.joinToString(separator = "")
+            val borders = setOf(leftBorder, rightBorder)
+            val flipedBorders = borders.map { it.reversed() }.toSet()
+            return borders.plus(flipedBorders).toSet()
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as Picture
+
+            if (id != other.id) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            return id
+        }
+
 
         companion object {
             fun createFromPictureString(lines: List<String>): Picture {
@@ -43,9 +130,11 @@ class Pictures202 {
 
 
             fun getNeighbors(center: Picture, allParts: Set<Picture>): Set<Picture> {
-                return allParts.minus(center).filter { it.borders().any { border -> center.borders().contains(border) } }
+                return allParts.minus(center)
+                    .filter { it.borders().any { border -> center.borders().contains(border) } }
                     .toSet()
             }
+
         }
     }
 
