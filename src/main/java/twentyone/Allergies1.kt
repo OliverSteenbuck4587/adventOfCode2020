@@ -1,59 +1,54 @@
 package twentyone
 
-class Pictures201 {
+class Allergies211 {
     fun run() {
-        val input = readFileAsLinesUsingGetResourceAsStream("../20pictures.txt")
-        val pictures = input.split("\n\n")
-            .map { it.split("\n") }
-            .map { Picture.createFromPictureString(it) }
-            .map { it.id to it }.toMap()
+        val input = readFileAsLinesUsingGetResourceAsStream("../21allergies.txt")
+        val meals = input.split("\n")
+        val allergens = meals
+            .map{it.split("(contains")[1].trim().removeSuffix(")").trim()}
+            .flatMap { it.split(", ") }
+            .toSet()
+        val allergensToAllMeals = allergens.map { it to mutableSetOf<Set<String>>() }.toMap()
+        val ingredients = meals.flatMap { extractIngredients(it) }.toSet()
 
-
-        val corners = mutableSetOf<Picture>()
-        //val picture = pictures.get(1427)!!
-        for(picture in pictures.values) {
-            val picturesWithoutCornder = pictures.minus(picture.id)
-            val nonMatchingBorder = picture.borders.filter { borderInCorner ->
-                picturesWithoutCornder.values.none {
-                    it.borders.contains(borderInCorner)
-                }
-
-            }.toSet()
-            if(nonMatchingBorder.size == 4){
-                corners.add(picture)
+        for(meal in meals){
+            extractAllergens(meal).forEach{
+                allergensToAllMeals[it]!!.add(extractIngredients(meal))
             }
         }
 
-        for (corner in corners) {
-            println(corner)
-        }
+        println(allergensToAllMeals)
 
-        println("Result: " + corners.map { it.id.toLong() }.reduce{sum, element -> sum * element})
+        val mealToReducedAllergens = allergensToAllMeals.map { it.key to it.value.reduce{ one, two -> one.intersect(two)} }.toMap()
+        val ingredientsWithPossibleAllergen = mealToReducedAllergens.values.flatMap { it }.toSet()
+        val ingredientsWithoutAllergens = ingredients.minus(ingredientsWithPossibleAllergen)
+        val count = ingredientsWithoutAllergens.map { howOftenDoesIngredientAppear(it, meals) }.sum()
+        println(count)
 
-//        println(leftTopCorner)
-//        println(rightTopCorner)
-//        println(rightBottomCorner)
-//        println(leftBottomCorner)
+
     }
 
-    data class Picture(
-        val id: Int,
-        val borders: Set<String>
-    ) {
-        companion object {
-            fun createFromPictureString(lines: List<String>): Picture {
-                val id = lines[0].removePrefix("Tile ").removeSuffix(":").trim().toInt()
-                val topBorder = lines[1]
-                val bottomBorder = lines.last()
-                val leftBorder = lines.drop(1).map { it[0] }.joinToString(separator = "")
-                val rightBorder = lines.drop(1).map { it.last() }.joinToString(separator = "")
-                val borders = setOf(topBorder, bottomBorder, leftBorder, rightBorder)
-                val flipedBorders = borders.map { it.reversed() }.toSet()
-                return Picture(id, borders.plus(flipedBorders))
-            }
-        }
+    fun howOftenDoesIngredientAppear(ingredient: String, meals: List<String>): Int{
+        return meals.map { extractIngredients(it) }.filter { it.contains(ingredient) }.count()
     }
 
+    private fun extractIngredients(meal: String): Set<String> {
+       return meal.split("(contains")[0]
+            .trim()
+            .split(" ")
+            .toSet()
+    }
+
+    fun extractAllergens(meal: String):Set<String>{
+        return meal
+            .split("(contains")[1]
+            .trim()
+            .removeSuffix(")")
+            .trim()
+            .split(", ")
+            .toSet()
+
+    }
 
     fun readFileAsLinesUsingGetResourceAsStream(fileName: String) =
         this::class.java.getResourceAsStream(fileName).bufferedReader().readText()
@@ -65,7 +60,7 @@ class Pictures201 {
 
 
 fun main(args: Array<String>) {
-    val baggage = Pictures201();
+    val baggage = Allergies211();
     baggage.run()
 
 }
