@@ -8,19 +8,19 @@ class Allergies211 {
             .map{it.split("(contains")[1].trim().removeSuffix(")").trim()}
             .flatMap { it.split(", ") }
             .toSet()
-        val allergensToAllMeals = allergens.map { it to mutableSetOf<Set<String>>() }.toMap()
+        val allergensToIngredients = allergens.map { it to mutableSetOf<Set<String>>() }.toMap()
         val ingredients = meals.flatMap { extractIngredients(it) }.toSet()
 
         for(meal in meals){
             extractAllergens(meal).forEach{
-                allergensToAllMeals[it]!!.add(extractIngredients(meal))
+                allergensToIngredients[it]!!.add(extractIngredients(meal))
             }
         }
 
-        println(allergensToAllMeals)
+        println(allergensToIngredients)
 
-        val mealToReducedAllergens = allergensToAllMeals.map { it.key to it.value.reduce{ one, two -> one.intersect(two)} }.toMap()
-        val ingredientsWithPossibleAllergen = mealToReducedAllergens.values.flatMap { it }.toSet()
+        val allergenToUniqueIngredients = allergensToIngredients.map { it.key to it.value.reduce{ one, two -> one.intersect(two)} }.toMap()
+        val ingredientsWithPossibleAllergen = allergenToUniqueIngredients.values.flatMap { it }.toSet()
         val ingredientsWithoutAllergens = ingredients.minus(ingredientsWithPossibleAllergen)
         val count = ingredientsWithoutAllergens.map { howOftenDoesIngredientAppear(it, meals) }.sum()
         println(count)
