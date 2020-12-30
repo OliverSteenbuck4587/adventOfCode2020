@@ -51,74 +51,73 @@ class ShellGame1 {
         this::class.java.getResourceAsStream(fileName).bufferedReader().readText()
 
 
-}
+    class Cup(val label: Int) {
+        lateinit var next: Cup
+    }
 
-class Cup(val label: Int) {
-    lateinit var next: Cup
-}
+    class CupList(initialCups: List<Cup>) {
+        private val cupMap: Map<Int, Cup> = initialCups.map { it.label to it }.toMap()
+        private val clipboard = mutableListOf<Cup>()
 
-class CupList(initialCups: List<Cup>) {
-    private val cupMap: Map<Int, Cup> = initialCups.map { it.label to it }.toMap()
-    private val clipboard = mutableListOf<Cup>()
-
-    init {
-        for (i in 1.until(initialCups.size)) {
-            val currentCup = initialCups[i]
-            val predecessor = initialCups[i - 1]
-            predecessor.next = currentCup
+        init {
+            for (i in 1.until(initialCups.size)) {
+                val currentCup = initialCups[i]
+                val predecessor = initialCups[i - 1]
+                predecessor.next = currentCup
+            }
+            initialCups.last().next = initialCups.first()
         }
-        initialCups.last().next = initialCups.first()
+
+        fun toString(startLabel: Int): String {
+            val startCup = cupMap[startLabel]!!
+            val elems = mutableListOf<Int>()
+            var current = startCup
+            do {
+                elems.add(current.label)
+                current = current.next
+            } while (current != startCup)
+            return elems.joinToString(separator = "  ")
+        }
+
+        override fun toString(): String {
+            return toString(cupMap.values.first().label)
+        }
+
+        fun asList(): List<Int> {
+            val startCup = cupMap.values.minus(clipboard).first()
+            val elems = mutableListOf<Int>()
+            var current = startCup
+            do {
+                elems.add(current.label)
+                current = current.next
+            } while (current != startCup)
+            return elems
+        }
+
+        fun moveToClipboardAfter(cutAfter: Int) {
+            val cupToCutAfter = cupMap[cutAfter]!!
+            if (clipboard.isNotEmpty())
+                throw RuntimeException("Copying to a non empty clipboard")
+            clipboard.add(cupToCutAfter.next)
+            clipboard.add(cupToCutAfter.next.next)
+            clipboard.add(cupToCutAfter.next.next.next)
+            cupToCutAfter.next = clipboard.last().next
+        }
+
+        fun clipboardList(): List<Int> {
+            return clipboard.map { it.label }
+        }
+
+        fun insertClipBoardAfter(destinationLabel: Int) {
+            val destinationCup = cupMap.get(destinationLabel)!!
+            val next = destinationCup.next
+            destinationCup.next = clipboard.first()
+            clipboard.last().next = next
+            clipboard.removeAll { true }
+        }
+
+
     }
-
-    fun toString(startLabel: Int): String {
-        val startCup = cupMap[startLabel]!!
-        val elems = mutableListOf<Int>()
-        var current = startCup
-        do {
-            elems.add(current.label)
-            current = current.next
-        } while (current != startCup)
-        return elems.joinToString(separator = "  ")
-    }
-
-    override fun toString(): String {
-        return toString(cupMap.values.first().label)
-    }
-
-    fun asList(): List<Int> {
-        val startCup = cupMap.values.minus(clipboard).first()
-        val elems = mutableListOf<Int>()
-        var current = startCup
-        do {
-            elems.add(current.label)
-            current = current.next
-        } while (current != startCup)
-        return elems
-    }
-
-    fun moveToClipboardAfter(cutAfter: Int) {
-        val cupToCutAfter = cupMap[cutAfter]!!
-        if (clipboard.isNotEmpty())
-            throw RuntimeException("Copying to a non empty clipboard")
-        clipboard.add(cupToCutAfter.next)
-        clipboard.add(cupToCutAfter.next.next)
-        clipboard.add(cupToCutAfter.next.next.next)
-        cupToCutAfter.next = clipboard.last().next
-    }
-
-    fun clipboardList(): List<Int> {
-        return clipboard.map { it.label }
-    }
-
-    fun insertClipBoardAfter(destinationLabel: Int) {
-        val destinationCup = cupMap.get(destinationLabel)!!
-        val next = destinationCup.next
-        destinationCup.next = clipboard.first()
-        clipboard.last().next = next
-        clipboard.removeAll { true }
-    }
-
-
 }
 
 fun main(args: Array<String>) {
