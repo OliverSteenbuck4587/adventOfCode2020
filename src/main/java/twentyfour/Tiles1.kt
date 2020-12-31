@@ -2,7 +2,6 @@ package twentyfour
 
 import twentyfour.Tiles1.COLOR.BLACK
 import twentyfour.Tiles1.COLOR.WHITE
-import java.awt.Color
 
 class Tiles1 {
     fun run() {
@@ -33,6 +32,7 @@ class Tiles1 {
 
     }
 
+    //coordinate system learned from: https://math.stackexchange.com/questions/2254655/hexagon-grid-coordinate-system
     data class Coordinate(val x:Int, val y:Int, val z:Int)
 
     enum class COLOR{
