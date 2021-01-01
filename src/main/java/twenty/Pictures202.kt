@@ -1,158 +1,195 @@
 package twenty
 
-class Pictures202 {
-    fun run() {
-        val input = readFileAsLinesUsingGetResourceAsStream("../20pictures.txt")
-        val pictures = input.split("\n\n")
-            .map { it.split("\n") }
-            .map { Picture.createFromPictureString(it) }
-            .map { it.id to it }.toMap()
-
-        val picturesWithNeigbhors = pictures.values
-            .map { PictureWithNeighbors(it, Picture.getNeighbors(it, pictures.values.toSet())) }
-
-
-        //start with one
-        //todo place one corner top left
-        //write picture so it can orient itself to already place picture
-        //fill in starting from placed tile in top left
-
-
-        val startPoint = picturesWithNeigbhors.find { it.picture.id == 1951 }!!
-        startPoint.getRotatedSideNeighbhors().forEach { println(it) }
-
-
+class Day20(lines: List<String>) {
+    private val image: List<List<Pair<Int, Tile>>> = run {
+        val tiles = mutableMapOf<Int, BasicTile>().apply {
+            val lineIterator = lines.iterator()
+            for (title in lineIterator) {
+                require(title.substring(0, 5) == "Tile " && title.last() == ':')
+                this[title.substring(5, title.length - 1).toInt()] = BasicTile(
+                    lineIterator.asSequence().takeWhile { it.isNotEmpty() }.toList()
+                )
+            }
+        }
+        val borders = mutableMapOf<Int, MutableSet<Int>>().apply {
+            for ((id, basicTile) in tiles) {
+                for (tile in basicTile.variants()) {
+                    getOrPut(tile.top) { mutableSetOf() }.add(id)
+                }
+            }
+        }
+        @OptIn(ExperimentalStdlibApi::class)
+        assembleImage(tiles, borders)!!
     }
 
-    data class PictureWithNeighbors(val picture: Picture, val neighbors: Set<Picture>) {
-        fun getSideNeighbors(): Set<Picture> {
-            val result = mutableSetOf<Picture>()
-            val sideBorders = picture.getAllTopBottomBorders()
-            for (neigbhor in neighbors) {
-                if (sideBorders.intersect(neigbhor.borders()).size > 0) {
-                    result.add(neigbhor)
+    fun part1(): Long = with(image.first()) { first().first.toLong() * last().first.toLong() } *
+            with(image.last()) { first().first.toLong() * last().first.toLong() }
+
+    @Suppress("ComplexMethod", "ComplexCondition", "NestedBlockDepth")
+    fun part2(): Int {
+        val bitmap = mutableListOf<StringBuilder>()
+        for (tiles in image) {
+            val iy = bitmap.size
+            for ((_, tile) in tiles) {
+                for (y in 1 until tile.height - 1) {
+                    val irow = bitmap.getOrElse(iy + y - 1) { StringBuilder().also(bitmap::add) }
+                    for (x in 1 until tile.width - 1) irow.append(if (tile[x, y]) '#' else '.')
                 }
             }
-            return result;
         }
-
-        fun getRotatedSideNeighbhors(): MutableSet<Picture> {
-            val result = mutableSetOf<Picture>()
-            val sideNeighbors = getSideNeighbors()
-            val sideBorders = picture.getSideBorders()
-
-            for (neigbhor in neighbors) {
-                if (sideBorders.intersect(neigbhor.getSideBorders()).isNotEmpty()) {
-                    result.add(neigbhor)
+        val dragons = BasicTile(
+            """
+            ..................#.
+            #....##....##....###
+            .#..#..#..#..#..#...
+            """.trimIndent().lines()
+        ).variants()
+        for ((y, row) in bitmap.withIndex()) {
+            for (x in row.indices) {
+                for (dragon in dragons) {
+                    if (y + dragon.height >= bitmap.size ||
+                        (0 until dragon.height).any { dy ->
+                            val line = bitmap[y + dy]
+                            x + dragon.width >= line.length || (0 until dragon.width).any { dx ->
+                                dragon[dx, dy] && line[x + dx] == '.'
+                            }
+                        }
+                    ) continue
+                    for (dy in 0 until dragon.height) {
+                        val line = bitmap[y + dy]
+                        for (dx in 0 until dragon.width) {
+                            if (dragon[dx, dy]) line[x + dx] = 'O'
+                        }
+                    }
                 }
             }
-
-            for (neigbhor in neighbors.map { it.rotate() }) {
-                if (sideBorders.intersect(neigbhor.getSideBorders()).isNotEmpty()) {
-                    result.add(neigbhor)
-                }
-            }
-
-            for (neigbhor in neighbors.map { it.flip() }) {
-                if (sideBorders.intersect(neigbhor.getSideBorders()).isNotEmpty()) {
-                    result.add(neigbhor)
-                }
-            }
-
-            for (neigbhor in neighbors.map { it.rotate() }) {
-                if (sideBorders.intersect(neigbhor.getSideBorders()).isNotEmpty()) {
-                    result.add(neigbhor)
-                }
-            }
-            return result
         }
-
+        // for (row in bitmap) System.err.println(row)
+        return bitmap.sumOf { it.count { it == '#' } }
     }
 
-    data class Picture(
-        val id: Int,
-        val lines: List<List<Char>>
-    ) {
+    private interface Tile {
+        val width: Int
+        val height: Int
+        operator fun get(x: Int, y: Int): Boolean
 
-        fun flip(): Picture {
-            return Picture(id, lines.reversed())
-        }
+        val top: Int get() =
+            (0 until width).fold(0) { acc, x -> (acc shl 1) or if (this[x, 0]) 1 else 0 }
+        val left: Int get() =
+            (0 until height).fold(0) { acc, y -> (acc shl 1) or if (this[0, y]) 1 else 0 }
+        val bottom: Int get() =
+            (0 until width).fold(0) { acc, x -> (acc shl 1) or if (this[x, height - 1]) 1 else 0 }
+        val right: Int get() =
+            (0 until height).fold(0) { acc, y -> (acc shl 1) or if (this[width - 1, y]) 1 else 0 }
 
-        fun rotate(): Picture {
-            return Picture(id, lines.map { it.reversed() })
-        }
-
-        fun borders(): Set<String> {
-            return getAllTopBottomBorders().plus(getAllSideBorders())
-        }
-
-        fun getAllTopBottomBorders(): Set<String> {
-            val topBorder = lines[0].joinToString(separator = "")
-            val bottomBorder = lines.last().joinToString(separator = "")
-
-
-            val borders = setOf(topBorder, bottomBorder)
-            val flipedBorders = borders.map { it.reversed() }.toSet()
-            return borders.plus(flipedBorders).toSet()
-        }
-
-        fun getSideBorders(): Set<String> {
-            val leftBorder = lines.map { it[0] }.joinToString(separator = "")
-            val rightBorder = lines.map { it.last() }.joinToString(separator = "")
-            return setOf(leftBorder, rightBorder)
-        }
-
-        fun getAllSideBorders(): Set<String> {
-            val leftBorder = lines.map { it[0] }.joinToString(separator = "")
-            val rightBorder = lines.map { it.last() }.joinToString(separator = "")
-            val borders = setOf(leftBorder, rightBorder)
-            val flipedBorders = borders.map { it.reversed() }.toSet()
-            return borders.plus(flipedBorders).toSet()
-        }
-
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (javaClass != other?.javaClass) return false
-
-            other as Picture
-
-            if (id != other.id) return false
-
-            return true
-        }
-
-        override fun hashCode(): Int {
-            return id
-        }
-
-
-        companion object {
-            fun createFromPictureString(lines: List<String>): Picture {
-                val id = lines[0].removePrefix("Tile ").removeSuffix(":").trim().toInt()
-
-                return Picture(id, lines.drop(1).map { it.toCharArray().toList() })
-            }
-
-
-            fun getNeighbors(center: Picture, allParts: Set<Picture>): Set<Picture> {
-                return allParts.minus(center)
-                    .filter { it.borders().any { border -> center.borders().contains(border) } }
-                    .toSet()
-            }
-
-        }
+        fun variants(): List<Tile> = listOf(
+            this,
+            TransposeTile(this),
+            FlipTile(this),
+            TransposeTile(FlipTile(this)),
+            FlipTile(TransposeTile(this)),
+            TransposeTile(FlipTile(TransposeTile(this))),
+            FlipTile(TransposeTile(FlipTile(this))),
+            TransposeTile(FlipTile(TransposeTile(FlipTile(this)))),
+        )
     }
 
+    private class BasicTile(
+        override val width: Int,
+        override val height: Int,
+        private val bits: BooleanArray,
+    ) : Tile {
+        init {
+            require(bits.size == width * height)
+        }
+        constructor(lines: List<String>) : this(
+            width = lines.sumOf { it.length } / lines.size,
+            height = lines.size,
+            bits = lines.flatMap { it.map { it == '#' } }.toBooleanArray(),
+        )
 
-    fun readFileAsLinesUsingGetResourceAsStream(fileName: String) =
-        this::class.java.getResourceAsStream(fileName).bufferedReader().readText()
+        override operator fun get(x: Int, y: Int): Boolean = bits[x + y * width]
+    }
 
+    private class FlipTile(private val tile: Tile) : Tile {
+        override val width: Int get() = tile.width
+        override val height: Int get() = tile.height
+        override operator fun get(x: Int, y: Int): Boolean = tile[x, height - 1 - y]
+    }
+
+    private class TransposeTile(private val tile: Tile) : Tile {
+        override val width: Int get() = tile.height
+        override val height: Int get() = tile.width
+        override operator fun get(x: Int, y: Int): Boolean = tile[y, x]
+    }
+
+    companion object {
+        @ExperimentalStdlibApi
+        @Suppress("ComplexCondition", "ComplexMethod")
+        private fun assembleImage(
+            tiles: Map<Int, Tile>,
+            borders: Map<Int, Set<Int>>,
+        ): List<List<Pair<Int, Tile>>>? {
+            val unused = tiles.keys.toMutableSet()
+            val dest = mutableListOf(mutableListOf<Pair<Int, Tile>>())
+            val go = DeepRecursiveFunction<Unit, Boolean> {
+                if (unused.isEmpty()) return@DeepRecursiveFunction true
+                val lastRow = dest.last()
+                if (dest.size < 2 || dest.first().size > lastRow.size) {
+                    val left = lastRow.lastOrNull()?.second?.right
+                    val top = dest.getOrNull(dest.lastIndex - 1)?.get(lastRow.size)?.second?.bottom
+                    val candidates = when {
+                        left != null -> borders[left].orEmpty()
+                        top != null -> borders[top].orEmpty()
+                        else -> tiles.keys
+                    }.filter { it in unused }
+                    for (id in candidates) {
+                        if (!unused.remove(id)) continue
+                        for (variant in tiles[id]!!.variants()) {
+                            if (left != null && variant.left != left ||
+                                top != null && variant.top != top
+                            ) continue
+                            val pair = (id to variant).also(lastRow::add)
+                            if (callRecursive(Unit)) return@DeepRecursiveFunction true
+                            check(lastRow.removeAt(lastRow.lastIndex) === pair)
+                        }
+                        check(unused.add(id))
+                    }
+                }
+                if (dest.size == 1 && lastRow.isNotEmpty() ||
+                    dest.size > 1 && dest.first().size <= lastRow.size
+                ) {
+                    val nextRow = mutableListOf<Pair<Int, Tile>>().also(dest::add)
+                    val top = lastRow.first().second.bottom
+                    val candidates = borders[top].orEmpty().filter { it in unused }
+                    for (id in candidates) {
+                        if (!unused.remove(id)) continue
+                        for (variant in tiles[id]!!.variants()) {
+                            if (variant.top != top) continue
+                            val pair = (id to variant).also(nextRow::add)
+                            if (callRecursive(Unit)) return@DeepRecursiveFunction true
+                            check(nextRow.removeAt(nextRow.lastIndex) === pair)
+                        }
+                        check(unused.add(id))
+                    }
+                    check(dest.removeAt(dest.lastIndex) === nextRow)
+                }
+                false
+            }
+            return dest.takeIf { go(Unit) }
+        }
+    }
+}
+
+fun main(args: Array<String>) {
+    val foo = Foo()
+    val lines = foo.readFileAsLinesUsingGetResourceAsStream("../20pictures.txt").split("\n")
+    val baggage = Day20(lines);
+    println(baggage.part2())
 
 }
 
-
-fun main(args: Array<String>) {
-    val baggage = Pictures202();
-    baggage.run()
-
+class Foo {
+    fun readFileAsLinesUsingGetResourceAsStream(fileName: String) =
+        this::class.java.getResourceAsStream(fileName).bufferedReader().readText()
 }
