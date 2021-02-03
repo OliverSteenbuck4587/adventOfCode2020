@@ -31,7 +31,6 @@ class Seats111 {
                     FLOOR -> FLOOR
                     OCCUPIED -> if (getNumberofOccupiedNeighbors(seats, rowIndex, columnIndex) >= 4) FREE else OCCUPIED
                     FREE -> if (getNumberofOccupiedNeighbors(seats, rowIndex, columnIndex) == 0) OCCUPIED else FREE
-                    OUT_OF_BOUNDS -> throw RuntimeException("OUT OF BOUNDS")
                 }
             }.toTypedArray()
         }.toTypedArray()
@@ -72,8 +71,7 @@ class Seats111 {
     enum class Type(val symbol: Char) {
         OCCUPIED('#'),
         FREE('L'),
-        FLOOR('.'),
-        OUT_OF_BOUNDS('X');
+        FLOOR('.');
 
         override fun toString(): String {
             return "$symbol"
